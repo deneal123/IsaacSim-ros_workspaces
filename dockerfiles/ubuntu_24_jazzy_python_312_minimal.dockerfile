@@ -1,5 +1,10 @@
-ARG BASE_IMAGE=ubuntu:24.04
+ARG BASE_IMAGE=nvidia/cuda:13.1.1-devel-ubuntu24.04
 FROM ${BASE_IMAGE}
+
+# Ensure CUDA toolkit is visible to CMake and the shell
+ENV CUDAToolkit_ROOT=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
 
 ENV ROS_DISTRO=jazzy
 ENV ROS_ROOT=jazzy_ws
@@ -62,6 +67,17 @@ RUN apt update && apt install -y \
     libconsole-bridge-dev \
     libfcl-dev
 
+# Install NVIDIA VPI SDK libraries so isaac_ros_common can find_package(vpi)
+RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates \
+    && cd /tmp \
+    && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/libn/libnvvpi4/libnvvpi4_4.0.5_amd64.deb \
+    && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/p/python3.12-vpi4/python3.12-vpi4_4.0.5_amd64.deb \
+    && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/v/vpi4-dev/vpi4-dev_4.0.5_amd64.deb \
+    && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/v/vpi4-python-src/vpi4-python-src_4.0.5_amd64.deb \
+    && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/v/vpi4-samples/vpi4-samples_4.0.5_amd64.deb \
+    && apt-get install -y --no-install-recommends /tmp/libnvvpi4_4.0.5_amd64.deb /tmp/python3.12-vpi4_4.0.5_amd64.deb /tmp/vpi4-dev_4.0.5_amd64.deb /tmp/vpi4-python-src_4.0.5_amd64.deb /tmp/vpi4-samples_4.0.5_amd64.deb \
+    && rm -rf /tmp/*.deb /var/lib/apt/lists/*
+
 # Install Eigen3 needed for OMPL and MoveIt
 RUN apt update && apt install -y \
     libeigen3-dev
@@ -117,8 +133,6 @@ RUN apt update && apt install -y \
   libpython3-dev \
   liblttng-ust-dev
 
-RUN pip3 install --break-system-packages setuptools==70.0.0
-
 # Install the correct version of empy that is compatible with ROS 2 jazzy
 # Uninstall any existing empy first, then install version 3.3.4 specifically
 RUN python3 -m pip uninstall -y em empy || true
@@ -148,7 +162,7 @@ RUN python3 -m pip install --break-system-packages --ignore-installed "pybind11[
 
 RUN mkdir -p ${ROS_ROOT}/src && \
     cd ${ROS_ROOT} && \
-    rosinstall_generator --deps --rosdistro ${ROS_DISTRO} rosidl_runtime_c rcutils rcl rmw tf2 tf2_msgs common_interfaces geometry_msgs nav_msgs std_msgs rosgraph_msgs sensor_msgs vision_msgs rclpy ros2topic ros2pkg ros2doctor ros2run ros2node ros_environment ackermann_msgs example_interfaces > ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall && \
+    rosinstall_generator --deps --rosdistro ${ROS_DISTRO} ament_cmake_auto rosidl_runtime_c rcutils rcl rclcpp rclcpp_action rclcpp_components rmw tf2 tf2_msgs tf2_geometry_msgs common_interfaces geometry_msgs nav_msgs std_msgs rosgraph_msgs sensor_msgs vision_msgs nav2_msgs rclpy ros2topic ros2pkg ros2doctor ros2run ros2node ros_environment ackermann_msgs example_interfaces pluginlib > ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall && \
     cat ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall && \
     vcs import src < ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall
 
@@ -173,6 +187,18 @@ COPY jazzy_ws/src /workspace/build_ws/src
 # This is to ensure that the internal build is as minimal as possible. 
 # For the user facing MoveIt interface workflow, this package should be built with the rest of the workspace uisng the external ROS installation.
 RUN rm -rf /workspace/build_ws/src/moveit
+
+# Install ROS package dependencies required by vda5050 and related packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-nav2-msgs \
+    ros-jazzy-rclcpp-action \
+    ros-jazzy-rclcpp-components \
+    ros-jazzy-tf2-geometry-msgs \
+    ros-jazzy-nlohmann-json \
+    ros-jazzy-rosbridge-library \
+    ros-jazzy-mosquitto \
+    python3-paho-mqtt \
+    && rm -rf /var/lib/apt/lists/*
 
 # Make sure we're in the right directory
 WORKDIR /workspace
