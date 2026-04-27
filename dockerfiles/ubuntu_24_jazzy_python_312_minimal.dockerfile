@@ -17,24 +17,22 @@ WORKDIR /workspace
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
-		cmake \
-		build-essential \
-		curl \
-		wget \
-		gnupg2 \
-		lsb-release
-
+        cmake \
+        build-essential \
+        curl \
+        wget \
+        gnupg2 \
+        lsb-release
 
 # Upgrade installed packages
 RUN apt update && apt upgrade -y && apt clean
 
 # Setting up locale stuff
-RUN apt update && apt install locales
+RUN apt update && apt install -y locales
 
 RUN locale-gen en_US en_US.UTF-8 && \
     update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 && \
     export LANG=en_US.UTF-8
-
 
 RUN wget --no-check-certificate https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc && apt-key add ros.asc
 RUN sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
@@ -75,7 +73,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certifi
     && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/v/vpi4-dev/vpi4-dev_4.0.5_amd64.deb \
     && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/v/vpi4-python-src/vpi4-python-src_4.0.5_amd64.deb \
     && wget -q https://repo.download.nvidia.com/jetson/x86_64/noble/pool/main/v/vpi4-samples/vpi4-samples_4.0.5_amd64.deb \
-    && apt-get install -y --no-install-recommends /tmp/libnvvpi4_4.0.5_amd64.deb /tmp/python3.12-vpi4_4.0.5_amd64.deb /tmp/vpi4-dev_4.0.5_amd64.deb /tmp/vpi4-python-src_4.0.5_amd64.deb /tmp/vpi4-samples_4.0.5_amd64.deb \
+    && apt-get install -y --no-install-recommends \
+        /tmp/libnvvpi4_4.0.5_amd64.deb \
+        /tmp/python3.12-vpi4_4.0.5_amd64.deb \
+        /tmp/vpi4-dev_4.0.5_amd64.deb \
+        /tmp/vpi4-python-src_4.0.5_amd64.deb \
+        /tmp/vpi4-samples_4.0.5_amd64.deb \
     && rm -rf /tmp/*.deb /var/lib/apt/lists/*
 
 # Install Eigen3 needed for OMPL and MoveIt
@@ -120,18 +123,18 @@ RUN apt update && apt install -y \
     python3-pyqt5.qtwebengine
 
 RUN apt update && apt install -y \
-  python3-pip \
-  python3-pytest-cov \
-  python3-rosinstall-generator \
-  ros-dev-tools \
-  libbullet-dev \
-  libasio-dev \
-  libtinyxml2-dev \
-  libcunit1-dev \
-  libacl1-dev \
-  python3-empy \
-  libpython3-dev \
-  liblttng-ust-dev
+    python3-pip \
+    python3-pytest-cov \
+    python3-rosinstall-generator \
+    ros-dev-tools \
+    libbullet-dev \
+    libasio-dev \
+    libtinyxml2-dev \
+    libcunit1-dev \
+    libacl1-dev \
+    python3-empy \
+    libpython3-dev \
+    liblttng-ust-dev
 
 # Install the correct version of empy that is compatible with ROS 2 jazzy
 # Uninstall any existing empy first, then install version 3.3.4 specifically
@@ -139,19 +142,19 @@ RUN python3 -m pip uninstall -y em empy || true
 RUN python3 -m pip install --break-system-packages empy==3.3.4
 
 RUN python3 -m pip install --break-system-packages -U --ignore-installed \
-  argcomplete \
-  flake8-blind-except \
-  flake8-builtins \
-  flake8-class-newline \
-  flake8-comprehensions \
-  flake8-deprecated \
-  flake8-docstrings \
-  flake8-import-order \
-  flake8-quotes \
-  pytest-repeat \
-  pytest-rerunfailures \
-  pytest \
-  lark
+    argcomplete \
+    flake8-blind-except \
+    flake8-builtins \
+    flake8-class-newline \
+    flake8-comprehensions \
+    flake8-deprecated \
+    flake8-docstrings \
+    flake8-import-order \
+    flake8-quotes \
+    pytest-repeat \
+    pytest-rerunfailures \
+    pytest \
+    lark
 
 RUN python3 -m pip uninstall numpy -y || true
 RUN python3 -m pip install --break-system-packages --ignore-installed --upgrade pip
@@ -162,13 +165,18 @@ RUN python3 -m pip install --break-system-packages --ignore-installed "pybind11[
 
 RUN mkdir -p ${ROS_ROOT}/src && \
     cd ${ROS_ROOT} && \
-    rosinstall_generator --deps --rosdistro ${ROS_DISTRO} ament_cmake_auto rosidl_runtime_c rcutils rcl rclcpp rclcpp_action rclcpp_components rmw tf2 tf2_msgs tf2_geometry_msgs common_interfaces geometry_msgs nav_msgs std_msgs rosgraph_msgs sensor_msgs vision_msgs nav2_msgs rclpy ros2topic ros2pkg ros2doctor ros2run ros2node ros_environment ackermann_msgs example_interfaces pluginlib > ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall && \
+    rosinstall_generator --deps --rosdistro ${ROS_DISTRO} \
+        ament_cmake_auto rosidl_runtime_c rcutils rcl rclcpp rclcpp_action \
+        rclcpp_components rmw tf2 tf2_msgs tf2_geometry_msgs common_interfaces \
+        geometry_msgs nav_msgs std_msgs rosgraph_msgs sensor_msgs vision_msgs \
+        nav2_msgs rclpy ros2topic ros2pkg ros2doctor ros2run ros2node \
+        ros_environment ackermann_msgs example_interfaces pluginlib \
+        > ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall && \
     cat ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall && \
     vcs import src < ros2.${ROS_DISTRO}.${ROS_PKG}.rosinstall
 
 RUN rosdep init && rosdep update
 
-# Use logging to help debug build issues
 RUN cd ${ROS_ROOT} && colcon build --merge-install
 
 # Need these to maintain compatibility on non 20.04 systems
@@ -176,32 +184,59 @@ RUN cp /usr/lib/x86_64-linux-gnu/libtinyxml2.so* /workspace/jazzy_ws/install/lib
 RUN cp /usr/lib/x86_64-linux-gnu/libssl.so* /workspace/jazzy_ws/install/lib/ || true
 RUN cp /usr/lib/x86_64-linux-gnu/libcrypto.so* /workspace/jazzy_ws/install/lib/ || true
 
-# Next, build the additional workspace 
+# Next, build the additional workspace
 RUN mkdir -p /workspace/build_ws/src
-
 
 # Copy the source files only - don't copy any build artifacts
 COPY jazzy_ws/src /workspace/build_ws/src
 
-# Removing MoveIt packages from the internal ROS Python 3.12 library build as it uses standard interfaces already built above.
-# This is to ensure that the internal build is as minimal as possible. 
-# For the user facing MoveIt interface workflow, this package should be built with the rest of the workspace uisng the external ROS installation.
-RUN rm -rf /workspace/build_ws/src/moveit
+RUN pip3 install "paho-mqtt<2.0" --break-system-packages
 
-# Install ROS package dependencies required by vda5050 and related packages
+# Install non-ROS dependencies that rosdep doesn't know about
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-nav2-msgs \
     ros-jazzy-rclcpp-action \
     ros-jazzy-rclcpp-components \
     ros-jazzy-tf2-geometry-msgs \
-    ros-jazzy-nlohmann-json \
     ros-jazzy-rosbridge-library \
-    ros-jazzy-mosquitto \
+    ros-jazzy-navigation2 \
+    ros-jazzy-nav2-bringup \
+    ros-jazzy-angles \
+    ros-jazzy-ros2launch \
+    ros-jazzy-ros2-control \
+    ros-jazzy-ros2-controllers \
+    ros-jazzy-moveit \
+    ros-jazzy-srdfdom \
+    ros-jazzy-geometric-shapes \
+    ros-jazzy-ompl \
+    ros-jazzy-warehouse-ros \
+    ros-jazzy-rosbridge-suite \
+    nlohmann-json3-dev \
+    mosquitto \
+    libmosquitto-dev \
+    libcurl4-openssl-dev \
     python3-paho-mqtt \
     && rm -rf /var/lib/apt/lists/*
 
-# Make sure we're in the right directory
+# Use rosdep to automatically install ALL ROS dependencies declared
+# in package.xml files across the entire workspace in one shot.
+# --ignore-src   : skip packages that exist in the workspace itself (built by colcon)
+# --skip-keys    : skip packages not present in the source tree
 WORKDIR /workspace
 
+# Use rosdep to automatically install ALL ROS dependencies
+RUN apt-get update && \
+    rosdep install \
+        --from-paths build_ws/src \
+        --ignore-src \
+        --rosdistro jazzy \
+        -y \
+        --skip-keys 'isaac_manipulator_interfaces libnvvpi4 vpi4-dev nlohmann_json cuda-toolkit python3-paho-mqtt-pip-shim python3-onnxscript-pip-shim python3-onnx-pip-shim python3-torch-pip-shim' \
+    || true \
+    && rm -rf /var/lib/apt/lists/*
+
 # Build the workspace
-RUN /bin/bash -c "source ${ROS_ROOT}/install/setup.sh && cd build_ws && colcon build"
+RUN bash -c "source /opt/ros/jazzy/setup.bash && \
+    source /workspace/${ROS_ROOT}/install/setup.sh && \
+    cd /workspace/build_ws && \
+    colcon build --packages-ignore vda5050_action_handler_plugins"
